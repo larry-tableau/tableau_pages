@@ -1,0 +1,93 @@
+<html>
+  <head>
+    <title>Welcome to APJ ConnectedApp Pulse Demo</title>
+  </head>
+  <body>
+    <div id="container">
+      
+      <tableau-pulse id="tableauPulse"
+      src='https://10ax.online.tableau.com/pulse/site/sg/'
+      height="1600"
+      width="100%"
+      >
+      </tableau-pulse>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.1.0/uuidv4.min.js"></script>
+    <script type="module" src="https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js"></script>
+    
+    <script type="module">
+      const config = {
+        workbookUrl: "https://10ax.online.tableau.com/pulse/site/sg/", 
+        username: "larry.demo.user0+viewer@gmail.com",
+        toolbar: "no",
+        scopes: ["tableau:views:embed","tableau:insights:embed", "tableau:views:embed_authoring"],
+        connectedApp: {
+          secretId: "39dc7d3d-a478-42e2-8814-055a832d9735",
+          secret: "FH5+hh9wtEYEYlheFiC/4Vbmi67ZBGRl3of7hEmz5WQ=",
+          clientId: "bd7710ad-3dd7-4fbd-955d-b8e49e3cbe62",
+        },
+      };
+
+      async function setupViz() {
+        const signedToken = getJwt();
+        // ensure the token appear in console - VijayK - 7th July 2024
+        console.log(signedToken);
+        // querySeletor needs Tab cloud pod library as mentioned in the line 20.
+        const pulse = document.querySelector('tableau-pulse');
+        pulse.token = signedToken;
+
+      }
+
+      function getJwt() {
+        const header = {
+          alg: "HS256",
+          typ: "JWT",
+          kid: config.connectedApp.secretId,
+          iss: config.connectedApp.clientId,
+        };
+
+        const data = {
+          jti: uuidv4(),
+          iss: config.connectedApp.clientId,
+          aud: "tableau",
+          sub: config.username,
+          scp: config.scopes,
+          iat: Math.floor(Date.now() / 1000) - 5,
+          exp: Math.floor(Date.now() / 1000) + 5 * 60,
+        };
+
+        const encodedHeader = base64url(
+          CryptoJS.enc.Utf8.parse(JSON.stringify(header))
+        );
+        const encodedData = base64url(
+          CryptoJS.enc.Utf8.parse(JSON.stringify(data))
+        );
+
+        const token = `${encodedHeader}.${encodedData}`;
+        const signature = base64url(
+          CryptoJS.HmacSHA256(token, config.connectedApp.secret)
+        );
+        console.log(token);
+        return `${token}.${signature}`;
+      }
+
+
+      function base64url(source) {
+        // Encode in classical base64 - VijayK - 7th July 2024
+        var encodedSource = CryptoJS.enc.Base64.stringify(source);
+
+        // Remove padding equal characters
+        encodedSource = encodedSource.replace(/=+$/, "");
+
+        // Replace characters according to base64url specifications
+        encodedSource = encodedSource.replace(/\+/g, "-");
+        encodedSource = encodedSource.replace(/\//g, "_");
+
+        return encodedSource;
+      }
+      setupViz();
+    </script>
+  </body>
+</html>
